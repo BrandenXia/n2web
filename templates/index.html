@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title></title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100vh;
+        width: 100vw;
+        font-family: monospace;
+      }
+
+      #container {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 28px 24px;
+      }
+
+      #childs-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+      }
+
+      #childs-table tr {
+        display: flex;
+        padding: 0 10px;
+        border-radius: 6px;
+        transition: background 0.1s;
+      }
+
+      #childs-table tr:not(:first-child):hover {
+        background: #f1f1f1;
+      }
+
+      #childs-table tr > *:first-child {
+        flex: 4;
+        text-align: left;
+      }
+      #childs-table tr > *:nth-child(2) {
+        flex: 1;
+        text-align: center;
+      }
+      #childs-table tr > *:nth-child(3) {
+        flex: 2;
+        text-align: right;
+      }
+
+      #childs-table th {
+        padding-bottom: 10px;
+        font-size: 11px;
+        font-weight: 500;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #888;
+      }
+
+      #childs-table td {
+        padding: 10px 0;
+        font-size: 14px;
+        color: #555;
+      }
+
+      #childs-table tr:not(:first-child) {
+        border-bottom: 0.5px solid #ddd;
+      }
+      #childs-table tr:nth-child(2) {
+        border-top: 0.5px solid #ddd;
+      }
+
+      #childs-table td a {
+        color: #1a6bcc;
+        text-decoration: none;
+      }
+
+      #childs-table td a:hover {
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+
+      #parent-dir-row td a {
+        color: #888;
+      }
+
+      datetime {
+        font-size: 13px;
+        color: #aaa;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="container">
+      <table id="childs-table">
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Modified</th>
+        </tr>
+        <tr id="parent-dir-row">
+          <td><a href="../">↑ Parent directory</a></td>
+          <td>-</td>
+          <td><datetime>-</datetime></td>
+        </tr>
+      </table>
+    </div>
+  </body>
+</html>

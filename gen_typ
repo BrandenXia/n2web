@@ -5,8 +5,9 @@
 
 import path from "path";
 
-// 4 because ["bun_path", "script_path", "target"]
+// 3 because ["bun_path", "script_path", "target"]
 if (Bun.argc < 3) console.error("Usage: typ2html <target file>");
+if (Bun.argc > 3) console.error("Usage: typ2html <target file>");
 
 const script_dir = import.meta.dir;
 const templates_dir = `${script_dir}/templates`;

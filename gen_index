@@ -1,0 +1,58 @@
+#!/usr/bin/env bun
+// vim: ft=javascript
+
+"use strict";
+
+import path from "path";
+import { statSync } from "node:fs";
+import { readdir } from "node:fs/promises";
+import { $ } from "bun";
+
+// 3 because ["bun_path", "script_path", "target"]
+if (Bun.argc < 3) console.error("Usage: typ2html <target dir>");
+if (Bun.argc > 3) console.error("Usage: typ2html <target dir>");
+
+const constructRow = (item) => {
+  const fullPath = `${item.path}/${item.name}`;
+  const stats = statSync(fullPath);
+  const nameWithoutExt = path.basename(item.name, path.extname(item.name));
+  return `
+<tr>
+  <td><a href="./${item.name}">${nameWithoutExt}</a></td>
+  <td>${item.isDirectory() ? "Directory" : "File"}</td>
+  <td><datetime>${stats.mtime.toISOString().split(".")[0]}</datetime></td>
+</tr>
+  `;
+};
+
+(async () => {
+  const script_dir = import.meta.dir;
+  const templates_dir = `${script_dir}/templates`;
+  const template = `${templates_dir}/index.html`;
+
+  const target = Bun.argv[2];
+  const target_dir = path.dirname(target);
+  let subitems = await readdir(target_dir, { withFileTypes: true });
+  subitems = subitems.filter((v) => {
+    const ext = path.extname(v.name);
+    return v.name != "index.html" && (ext === ".html" || ext === "");
+  });
+
+  if (subitems.length === 0) console.error("No HTML files found in target dir");
+
+  if (subitems.length === 1 && path.extname(subitems[0].name) === ".html") {
+    await $`cp ${subitems[0].path}/${subitems[0].name} ${target}`;
+    return;
+  }
+
+  const rows = subitems.map(constructRow).join("\n");
+
+  const rewriter = new HTMLRewriter();
+  rewriter.on("#parent-dir-row", {
+    element: (row) => row.after(rows, { html: true }),
+  });
+
+  const template_content = await Bun.file(template).arrayBuffer();
+  const result = rewriter.transform(template_content);
+  await Bun.write(target, result);
+})();
