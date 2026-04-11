@@ -1,0 +1,35 @@
+#!/usr/bin/env bun
+// vim: ft=javascript
+
+"use strict";
+
+import path from "path";
+
+// 4 because ["bun_path", "script_path", "target"]
+if (Bun.argc < 3) console.error("Usage: typ2html <target file>");
+
+const script_dir = import.meta.dir;
+const templates_dir = `${script_dir}/templates`;
+const template = `${templates_dir}/typst.html`;
+
+const target = Bun.argv[2];
+const target_base = path.basename(target, ".html");
+const target_pdf = `./${target_base}.pdf#toolbar=0&navpanes=0&scrollbar=0`;
+
+const rewriter = new HTMLRewriter();
+rewriter.on("title", {
+  element: (title) => title.setInnerContent(target_base),
+});
+rewriter.on("#pdf-obj", {
+  element: (obj) => obj.setAttribute("data", target_pdf),
+});
+rewriter.on("#pdf-iframe", {
+  element: (iframe) => iframe.setAttribute("src", target_pdf),
+});
+rewriter.on("#pdf-link", {
+  element: (link) => link.setAttribute("href", target_pdf),
+});
+
+const template_content = await Bun.file(template).arrayBuffer();
+const result = rewriter.transform(template_content);
+await Bun.write(target, result);
