@@ -8,6 +8,8 @@ import { statSync } from "node:fs";
 import { readdir } from "node:fs/promises";
 import { $ } from "bun";
 
+import { toTitleCase } from "./utils";
+
 // 3 because ["bun_path", "script_path", "target"]
 if (Bun.argc < 3) console.error("Usage: typ2html <target dir>");
 if (Bun.argc > 3) console.error("Usage: typ2html <target dir>");
@@ -48,6 +50,14 @@ const constructRow = (item) => {
   const rows = subitems.map(constructRow).join("\n");
 
   const rewriter = new HTMLRewriter();
+  rewriter.on("title", {
+    element: (title) =>
+      title.setInnerContent(
+        path.basename(target_dir) == "dist"
+          ? "Index"
+          : toTitleCase(path.basename(target_dir)),
+      ),
+  });
   rewriter.on("#parent-dir-row", {
     element: (row) => row.after(rows, { html: true }),
   });

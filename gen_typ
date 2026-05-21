@@ -5,6 +5,8 @@
 
 import path from "path";
 
+import { toTitleCase } from "./utils";
+
 // 3 because ["bun_path", "script_path", "target"]
 if (Bun.argc < 3) console.error("Usage: typ2html <target file>");
 if (Bun.argc > 3) console.error("Usage: typ2html <target file>");
@@ -19,7 +21,7 @@ const target_pdf = `./${target_base}.pdf#toolbar=0&navpanes=0&scrollbar=0`;
 
 const rewriter = new HTMLRewriter();
 rewriter.on("title", {
-  element: (title) => title.setInnerContent(target_base),
+  element: (title) => title.setInnerContent(toTitleCase(target_base)),
 });
 rewriter.on("#pdf-obj", {
   element: (obj) => obj.setAttribute("data", target_pdf),
