@@ -8,7 +8,7 @@ INDEX_TEMPLATE := $(TEMPLATE_DIR)/index.html
 GEN_TYP := gen_typ
 GEN_INDEX := gen_index
 
-.PHONY: all typst index clean
+.PHONY: all typst index icon clean
 
 TYP_SRCS := $(shell find $(NOTES_DIR)/ -name "*.typ")
 TYP_DIRS := $(sort $(dir $(TYP_SRCS)))
@@ -28,7 +28,7 @@ TARGET_DIRS_REC := $(patsubst %/,%,$(TARGET_DIRS_REC))
 
 INDEX_TARGETS := $(addsuffix /index.html, $(TARGET_DIRS_REC))
 
-all: typst index
+all: typst index icon
 
 define define_mkdir_target
 $(1):
@@ -48,6 +48,11 @@ index: $(INDEX_TARGETS)
 
 $(INDEX_TARGETS): $(DIST_DIR)/%index.html: $(NOTES_DIR)/% $(INDEX_TEMPLATE) $(GEN_INDEX)
 	./$(GEN_INDEX) $@
+
+icon: dist/favicon.svg
+
+dist/favicon.svg: favicon.svg
+	cp ./favicon.svg dist/
 
 clean:
 	rm -rf $(DIST_DIR)
