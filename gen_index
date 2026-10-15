@@ -6,21 +6,24 @@
 import path from "path";
 import { statSync } from "node:fs";
 import { readdir } from "node:fs/promises";
-import { $ } from "bun";
 
-import { toTitleCase } from "./utils";
+import { toTitleCase, faviconPath, escapeHtml } from "./utils";
 
-// 3 because ["bun_path", "script_path", "target"]
-if (Bun.argc < 3) console.error("Usage: typ2html <target dir>");
-if (Bun.argc > 3) console.error("Usage: typ2html <target dir>");
+if (Bun.argv.length < 3 || Bun.argv.length > 4) {
+  console.error("Usage: gen_index <target file> [output root]");
+  process.exit(1);
+}
 
 const constructRow = (item) => {
   const fullPath = `${item.path}/${item.name}`;
   const stats = statSync(fullPath);
-  const nameWithoutExt = path.basename(item.name, path.extname(item.name));
+  const nameWithoutExt = item.isDirectory()
+    ? item.name
+    : path.basename(item.name, path.extname(item.name));
+  const href = `./${encodeURIComponent(item.name)}${item.isDirectory() ? "/" : ""}`;
   return `
 <tr>
-  <td><a href="./${item.name}">${nameWithoutExt}</a></td>
+  <td><a href="${escapeHtml(href)}">${escapeHtml(nameWithoutExt)}</a></td>
   <td>${item.isDirectory() ? "Directory" : "File"}</td>
   <td><datetime>${stats.mtime.toISOString().split(".")[0]}</datetime></td>
 </tr>
@@ -33,31 +36,37 @@ const constructRow = (item) => {
   const template = `${templates_dir}/index.html`;
 
   const target = Bun.argv[2];
+  const root = Bun.argv[3] ?? "dist";
   const target_dir = path.dirname(target);
   let subitems = await readdir(target_dir, { withFileTypes: true });
   subitems = subitems.filter((v) => {
     const ext = path.extname(v.name);
-    return v.name != "index.html" && (ext === ".html" || ext === "");
+    return v.isDirectory() || (v.isFile() && v.name !== "index.html" && ext === ".html");
   });
+  subitems.sort((a, b) => a.name.localeCompare(b.name));
 
-  if (subitems.length === 0) console.error("No HTML files found in target dir");
-
-  if (subitems.length === 1 && path.extname(subitems[0].name) === ".html") {
-    await $`cp ${subitems[0].path}/${subitems[0].name} ${target}`;
+  if (subitems.length === 1 && subitems[0].isFile()) {
+    await Bun.write(target, Bun.file(path.join(target_dir, subitems[0].name)));
     return;
   }
 
   const rows = subitems.map(constructRow).join("\n");
 
   const rewriter = new HTMLRewriter();
+  rewriter.on('link[rel="icon"]', {
+    element: (link) => link.setAttribute("href", faviconPath(target, root)),
+  });
   rewriter.on("title", {
     element: (title) =>
       title.setInnerContent(
-        path.basename(target_dir) == "dist"
+        path.resolve(target_dir) === path.resolve(root)
           ? "Index"
           : toTitleCase(path.basename(target_dir)),
       ),
   });
+  if (path.resolve(target_dir) === path.resolve(root)) {
+    rewriter.on("#parent-dir-row", { element: (row) => row.remove() });
+  }
   rewriter.on("#parent-dir-row", {
     element: (row) => row.after(rows, { html: true }),
   });

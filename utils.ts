@@ -1,3 +1,5 @@
+import path from "node:path";
+
 const prepositions = new Set([
   "to",
   "in",
@@ -30,4 +32,18 @@ const toTitleCase = (str: string) => {
   );
 };
 
-export { toTitleCase };
+const faviconPath = (target: string, root: string) => {
+  const relative = path.relative(path.dirname(target), path.join(root, "favicon.svg"));
+  return relative.split(path.sep).map(encodeURIComponent).join("/");
+};
+
+const escapeHtml = (text: string) =>
+  text.replace(/[&<>"']/g, (char) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  })[char]!);
+
+export { toTitleCase, faviconPath, escapeHtml };

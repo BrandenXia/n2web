@@ -5,21 +5,26 @@
 
 import path from "path";
 
-import { toTitleCase } from "./utils";
+import { toTitleCase, faviconPath } from "./utils";
 
-// 3 because ["bun_path", "script_path", "target"]
-if (Bun.argc < 3) console.error("Usage: typ2html <target file>");
-if (Bun.argc > 3) console.error("Usage: typ2html <target file>");
+if (Bun.argv.length < 3 || Bun.argv.length > 4) {
+  console.error("Usage: gen_typ <target file> [output root]");
+  process.exit(1);
+}
 
 const script_dir = import.meta.dir;
 const templates_dir = `${script_dir}/templates`;
 const template = `${templates_dir}/typst.html`;
 
 const target = Bun.argv[2];
+const root = Bun.argv[3] ?? "dist";
 const target_base = path.basename(target, ".html");
-const target_pdf = `./${target_base}.pdf#toolbar=0&navpanes=0&scrollbar=0`;
+const target_pdf = `./${encodeURIComponent(target_base)}.pdf#toolbar=0&navpanes=0&scrollbar=0`;
 
 const rewriter = new HTMLRewriter();
+rewriter.on('link[rel="icon"]', {
+  element: (link) => link.setAttribute("href", faviconPath(target, root)),
+});
 rewriter.on("title", {
   element: (title) => title.setInnerContent(toTitleCase(target_base)),
 });

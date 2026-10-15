@@ -1,0 +1,57 @@
+#!/usr/bin/env bun
+// vim: ft=javascript
+
+import path from "node:path";
+import { mkdir, readdir, readFile, realpath, rmdir, unlink, writeFile } from "node:fs/promises";
+
+if (Bun.argv.length < 4) {
+  console.error("Usage: gen_prune <output root> <notes root> [generated paths...]");
+  process.exit(1);
+}
+
+const output = path.resolve(Bun.argv[2]);
+await mkdir(output, { recursive: true });
+const root = await realpath(output);
+const contains = (parent, child) => {
+  const relative = path.relative(parent, child);
+  return relative === "" || (!relative.startsWith(`..${path.sep}`) && relative !== ".." && !path.isAbsolute(relative));
+};
+
+// Never prune a source tree, including through a symlinked output directory.
+const project = await realpath(import.meta.dir);
+const notes = await realpath(Bun.argv[3]);
+if (contains(root, project) || contains(root, notes) || contains(notes, root)) {
+  throw new Error("DIST_DIR must be separate from the notes tree and cannot contain the generator project");
+}
+
+const expected = new Set(Bun.argv.slice(4).map((target) => {
+  const absolute = path.resolve(target);
+  if (!contains(output, absolute)) throw new Error(`Generated path outside DIST_DIR: ${target}`);
+  return path.relative(output, absolute);
+}));
+let removed = false;
+
+async function prune(directory) {
+  for (const item of await readdir(directory, { withFileTypes: true })) {
+    const filename = path.join(directory, item.name);
+    if (item.isDirectory()) {
+      await prune(filename);
+      // Only remove directories that no longer contain any generated or user assets.
+      if ((await readdir(filename)).length === 0) await rmdir(filename);
+    } else if (item.isFile() && /\.(html|pdf|pdf\.d)$/.test(item.name) && !expected.has(path.relative(root, filename))) {
+      await unlink(filename);
+      removed = true;
+    }
+  }
+}
+
+await prune(root);
+const stateFile = path.join(root, ".generation-state");
+const state = [...expected].sort().join("\n") + "\n";
+let previous;
+try {
+  previous = await readFile(stateFile, "utf8");
+} catch (error) {
+  if (error.code !== "ENOENT") throw error;
+}
+if (removed || previous !== state) await writeFile(stateFile, state);
