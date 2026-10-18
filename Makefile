@@ -69,7 +69,13 @@ $(TYP_PDF_TARGETS): $(DIST_DIR)/%.pdf: $(NOTES_DIR)/%.typ Makefile
 	typst compile --root "$(NOTES_DIR)" --deps "$@.d" --deps-format make "$<" "$@"
 
 # Typst records imported files and assets so edits to them rebuild their PDFs.
--include $(addsuffix .d,$(TYP_PDF_TARGETS))
+TYP_DEP_FILES := $(wildcard $(addsuffix .d,$(TYP_PDF_TARGETS)))
+-include $(TYP_DEP_FILES)
+
+# Cached dependencies may refer to packages absent on a fresh runner or imports
+# that have since been removed. Empty rules let Typst recompile (and download
+# packages) instead of make failing before the compiler can run, like gcc -MP.
+$(foreach dep,$(TYP_DEP_FILES),$(eval $(shell sed 's/^[^:]*: //' $(call shell_quote,$(dep))):))
 
 index: $(addsuffix /index.html,$(TARGET_DIRS))
 
